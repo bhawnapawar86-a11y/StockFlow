@@ -1,10 +1,17 @@
-// app/dashboard/admin/page.tsx
-
+import { cookies } from 'next/headers'; // ✅ FIX
+import { redirect } from 'next/navigation';
 import AdminCards from '@/app/ui/dashboard/admin-cards';
 import EmployeeSection from "@/app/ui/dashboard/admin/employees/EmployeeSection";
 import EmployeeTable from '@/app/ui/dashboard/admin/employees/EmployeeTable';
 
-export default function Page() {
+export default async function Page() {
+  const cookieStore = await cookies();
+  const role = cookieStore.get('role')?.value;
+
+  if (role !== 'admin') {
+    redirect('/login');
+  }
+
   return (
     <main className="min-h-screen bg-gray-900 text-gray-100 p-6">
       
@@ -13,11 +20,7 @@ export default function Page() {
       </h1>
 
       <AdminCards />
-
-      {/* client component */}
       <EmployeeSection />
-
-      {/* ✅ server component (DB safe) */}
       <EmployeeTable />
 
     </main>

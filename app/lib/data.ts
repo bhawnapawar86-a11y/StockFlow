@@ -62,6 +62,7 @@ export async function getRequests() {
 
   return result;
 }
+
 // ================= EMPLOYEE ASSETS =================
 export async function getEmployeeAssets(employeeId: string) {
   return await sql`
@@ -115,7 +116,7 @@ export async function getAdminStats() {
 }
 
 export async function getEmployeeStats(employeeId: string) {
-  // ✅ Approved assets (My Assets count)
+  
   const assets = await sql`
     SELECT COUNT(*) 
     FROM requests
@@ -123,14 +124,12 @@ export async function getEmployeeStats(employeeId: string) {
     AND status = 'approved'
   `;
 
-  // ✅ Total requests
   const total = await sql`
     SELECT COUNT(*) 
     FROM requests
     WHERE employee_id = ${employeeId}
   `;
-
-  // ✅ Pending requests
+  
   const pending = await sql`
     SELECT COUNT(*) 
     FROM requests

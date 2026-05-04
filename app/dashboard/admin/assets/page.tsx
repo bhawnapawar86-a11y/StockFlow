@@ -5,7 +5,7 @@ export default function ManageAssetsPage() {
   return (
     <div className="p-6 min-h-screen bg-[#0f172a] text-white">
 
-      {/* Heading */}
+  
       <div className="mb-6">
         <h1 className="text-2xl font-semibold">
           Manage Assets
@@ -26,24 +26,9 @@ export default function ManageAssetsPage() {
           Asset List
         </h2>
 
-        <table className="w-full text-sm">
 
-          {/* 🔥 UPDATED HEADER */}
-          <thead className="text-gray-400 border-b border-gray-700">
-            <tr>
-              <th className="text-left py-2 px-3">#</th>
-              <th className="text-left py-2 px-3">Asset Name</th>
-              <th className="text-left py-2 px-3">Category</th>
-              <th className="text-left py-2 px-3">Total Stock</th>
-              <th className="text-left py-2 px-3">Allocated</th>
-              <th className="text-left py-2 px-3">Remaining</th>
-            </tr>
-          </thead>
-
-          {/* 🔥 DYNAMIC TABLE BODY */}
           <AssetList />
 
-        </table>
       </div>
 
     </div>

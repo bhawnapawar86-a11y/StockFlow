@@ -1,7 +1,7 @@
 import { getRequests } from "@/app/lib/data";
 import RequestTable from "@/app/ui/dashboard/admin/requests/RequestTable";
 
-export const dynamic = "force-dynamic";
+
 
 export default async function Page() {
   const requests = await getRequests();

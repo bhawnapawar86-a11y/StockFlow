@@ -8,8 +8,6 @@ export default function Page() {
         My Assets
       </h1>
 
-
-      
       <MyAssetTable />
 
     </div>

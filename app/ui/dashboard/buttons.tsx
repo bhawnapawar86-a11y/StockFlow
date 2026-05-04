@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from "react";
+import { logout } from "@/app/lib/actions";
 
 import { updateRequestStatus } from "@/app/lib/actions";
 type ButtonProps = {
@@ -69,4 +70,15 @@ export function RejectButton({ id }: { id: string }) {
   );
 }
 
-
+export function LogoutButton() {
+  return (
+    <form action={logout}>
+      <button
+        type="submit"
+        className="px-5 py-2 bg-red-600 hover:bg-red-500 rounded-md font-medium transition"
+      >
+        Logout
+      </button>
+    </form>
+  );
+}

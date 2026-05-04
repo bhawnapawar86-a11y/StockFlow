@@ -1,6 +1,6 @@
-// lib/actions.ts
-"use server";
 
+"use server";
+import { cookies } from "next/headers";
 import { sql } from "@/app/lib/db";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
@@ -16,7 +16,7 @@ export async function addEmployee(formData: FormData) {
   `;
 
   revalidatePath("/dashboard/admin");
-  redirect("/dashboard/admin"); // 🔥 ADD THIS
+  redirect("/dashboard/admin"); 
 }
 
 export async function addAsset(formData: FormData) {
@@ -52,14 +52,14 @@ export async function updateRequestStatus(
   requestId: string,
   status: string
 ) {
-  // 1. Update status
+  
   await sql`
     UPDATE requests
     SET status = ${status}
     WHERE id = ${requestId}
   `;
 
-  // 2. ONLY IF APPROVED → increment allocated
+ 
   if (status === "approved") {
 
     const request = await sql`
@@ -75,7 +75,7 @@ export async function updateRequestStatus(
     `;
   }
 
-  // 3. Refresh UI
+  
   revalidatePath("/dashboard/admin/requests");
   revalidatePath("/dashboard/admin/assets");
   revalidatePath("/dashboard/employee/my-assets");
@@ -83,3 +83,10 @@ export async function updateRequestStatus(
   revalidatePath("/dashboard/employee");
 }
 
+export async function logout() {
+  const cookieStore = await cookies();
+
+  cookieStore.delete("role"); 
+
+  redirect("/login"); 
+}

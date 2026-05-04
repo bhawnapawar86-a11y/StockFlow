@@ -10,10 +10,8 @@ export default async function Page() {
 
       <h1 className="text-2xl font-bold mb-4">My Requests</h1>
 
-      {/* 🔥 FORM */}
       <RequestAssetForm assets={assets} />
 
-      {/* 🔥 TABLE */}
       <div className="mt-6">
         <MyRequestTable />
       </div>
