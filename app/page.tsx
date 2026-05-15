@@ -1,13 +1,28 @@
 import Link from 'next/link';
 import Image from 'next/image';
 
-export default function Page() {
+import { cookies } from 'next/headers';
+import { redirect } from 'next/navigation';
+
+export default async function Page() {
+
+  const cookieStore = await cookies();
+  const role = cookieStore.get('role')?.value;
+
+  if (role === 'admin') {
+    redirect('/dashboard/admin');
+  }
+
+  if (role === 'employee') {
+    redirect('/dashboard/employee');
+  }
+
   return (
     <div className="flex items-center justify-center h-screen bg-gray-100">
-      
+
       <div className="bg-white p-8 rounded-2xl shadow-lg flex flex-col items-center gap-5">
-        
-        <Image 
+
+        <Image
           src="/logo.png"
           alt="StockFlow Logo"
           width={100}

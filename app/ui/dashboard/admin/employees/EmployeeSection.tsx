@@ -10,10 +10,7 @@ export default function EmployeeSection() {
     <div className="mt-10 bg-gray-800 p-6 rounded-2xl shadow-lg">
 
       <div className="flex justify-between items-center mb-6">
-        <h2 className="text-xl font-semibold">
-          Employee List
-        </h2>
-
+      
         <button
           onClick={() => setOpenForm(prev => !prev)}
           className="bg-blue-600 px-5 py-2 rounded-lg"

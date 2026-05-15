@@ -2,7 +2,7 @@ import { getEmployeeStats } from "@/app/lib/data";
 import Card from "./card";
 
 export default async function EmployeeCards() {
-  const employeeId = "25884c31-ddac-4540-8ac3-95675ec19b44";
+  const employeeId = "dd04f980-7a7e-44d8-8296-63880c5dcab4";
 
   const stats = await getEmployeeStats(employeeId);
 

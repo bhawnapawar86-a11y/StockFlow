@@ -44,7 +44,7 @@ export async function createRequest(formData: FormData) {
   `;
 
   revalidatePath("/dashboard/admin/requests");
-  revalidatePath("/dashboard/employee/MyRequests");
+  revalidatePath("/dashboard/employee/my-requests");
   revalidatePath("/dashboard/employee");
 }
 

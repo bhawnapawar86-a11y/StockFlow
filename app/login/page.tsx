@@ -6,7 +6,7 @@ export default function LoginPage() {
   async function handleLogin(formData: FormData) {
     'use server';
 
-    const cookieStore = await cookies(); // ✅ FIX (await)
+    const cookieStore = await cookies(); 
 
     const id = (formData.get('id') as string)?.trim().toLowerCase();
     const password = (formData.get('password') as string)?.trim();

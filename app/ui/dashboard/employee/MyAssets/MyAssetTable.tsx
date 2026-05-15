@@ -2,7 +2,7 @@ import { getEmployeeAssets } from "@/app/lib/data";
 
 export default async function MyAssetTable() {
 
-  const employeeId = "25884c31-ddac-4540-8ac3-95675ec19b44";
+  const employeeId = "dd04f980-7a7e-44d8-8296-63880c5dcab4";
 
   const assets = await getEmployeeAssets(employeeId);
 
