@@ -11,6 +11,7 @@ export default function NavLinks({ role }: { role: 'admin' | 'employee' }) {
     { name: 'Home', href: '/dashboard/admin' },
     { name: 'Manage Asset', href: '/dashboard/admin/assets' },
     { name: 'Manage Requests', href: '/dashboard/admin/requests' },
+    { name: 'AI Assistant', href: '/dashboard/admin/chat' },
   ];
 
   const employeeLinks = [
