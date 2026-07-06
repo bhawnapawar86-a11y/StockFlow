@@ -1,437 +1,709 @@
 import { NextResponse } from "next/server";
+import OpenAI from "openai";
 import { sql } from "@/app/lib/db";
 
-export async function POST(req: Request) {
+const openai = new OpenAI({
+  apiKey: process.env.OPENAI_API_KEY!,
+});
 
-  const { message, history } = await req.json();
 
-  const text = message.toLowerCase();
+export async function POST(req:Request){
 
-  const last =
-    history?.length
-      ? history[history.length - 1]
-      : {};
+try{
 
+const {message,history=[]}=await req.json();
 
-  // ================= EMPLOYEE FLOW =================
 
+const completion =
+await openai.chat.completions.create({
 
-  if(last.action?.type === "employee_email"){
+model:"gpt-4.1-mini",
 
-    return NextResponse.json({
+messages:[
 
-      reply:
-      "Please provide employee role",
+{
+role:"system",
+content:`
+
+You are StockFlow AI Assistant.
+
+Inventory and employee management assistant.
+
+Rules:
+- Use tools for database.
+- Specific employee/asset => only one record.
+- Available asset => quantity-allocated >0
+- Remaining => quantity-allocated
+- Out of stock => available 0
+- Pending requests only pending.
+- Do not show full table unless asked.
 
-      action:{
-        type:"employee_role",
-        name:last.action.name,
-        email:message
-      }
+`
+},
 
-    });
+...history,
 
-  }
+{
+role:"user",
+content:message
+}
+
+],
 
 
+tools:[
 
-  if(last.action?.type === "employee_role"){
 
-
-    const data = last.action;
-
-
-    await sql`
-
-      INSERT INTO employee
-      (name,email,role)
-
-      VALUES
-      (
-        ${data.name},
-        ${data.email},
-        ${message}
-      )
-
-    `;
-
-
-    return NextResponse.json({
-
-      reply:
-      `✅ Employee ${data.name} added successfully`
-
-    });
-
-  }
-
-  if(text.startsWith("add employee")){
-
-
-    const name =
-    message.replace(/add employee/i,"").trim();
-
-
-
-    if(!name){
-
-      return NextResponse.json({
-
-        reply:
-        "Please provide employee name",
-
-        action:{
-          type:"employee_name"
-        }
-
-      });
-
-    }
-
-    return NextResponse.json({
-
-      reply:
-      `Please provide email for ${name}`,
-
-      action:{
-        type:"employee_email",
-        name:name
-      }
-
-    });
-
-  }
-
-  if(last.action?.type==="employee_name"){
-
-
-    return NextResponse.json({
-
-      reply:
-      `Please provide email for ${message}`,
-
-      action:{
-        type:"employee_email",
-        name:message
-      }
-
-    });
-
-  }
-
-
-  // ================= DELETE EMPLOYEE =================
-
-
-  if(text.startsWith("delete employee")){
-
-
-    const name =
-    message.replace("delete employee","").trim();
-
-
-
-    const result =
-    await sql`
-
-    DELETE FROM employee
-
-    WHERE LOWER(name)=LOWER(${name})
-
-    RETURNING name
-
-    `;
-
-
-
-    return NextResponse.json({
-
-      reply:
-      result.length
-      ?
-      ` ${result[0].name} deleted ✅`
-      :
-      "Employee not found"
-
-    });
-
-  }
-
-
-
-  // ================= ASSET FLOW =================
-
-
-
-  if(last.action?.type==="asset_name"){
-
-
-    return NextResponse.json({
-
-      reply:
-      `Please provide category for ${message}`,
-
-      action:{
-        type:"asset_category",
-        name:message
-      }
-
-    });
-
-  }
-
-
-  if(last.action?.type==="asset_category"){
-
-
-    return NextResponse.json({
-
-      reply:
-      "Please provide quantity",
-
-      action:{
-        type:"asset_quantity",
-        name:last.action.name,
-        category:message
-      }
-
-    });
-
-  }
-
-
-  if(last.action?.type==="asset_quantity"){
-
-
-    const data =
-    last.action;
-
-
-
-    await sql`
-
-    INSERT INTO assets
-    (
-      name,
-      category,
-      quantity,
-      allocated
-    )
-
-    VALUES
-    (
-      ${data.name},
-      ${data.category},
-      ${Number(message)},
-      0
-    )
-
-    `;
-
-
-    return NextResponse.json({
-
-      reply:
-      `✅ Asset ${data.name} added successfully`
-
-    });
-
-  }
-
-
-  if(text.startsWith("add asset")){
-
-
-    const name =
-    message.replace("add asset","").trim();
-
-
-
-    if(!name){
-
-      return NextResponse.json({
-
-        reply:
-        "Please provide asset name",
-
-        action:{
-          type:"asset_name"
-        }
-
-      });
-
-    }
-
-
-    return NextResponse.json({
-
-      reply:
-      `Please provide category for ${name}`,
-
-      action:{
-        type:"asset_category",
-        name:name
-      }
-
-    });
-
-  }
-
-
-// ================= SHOW PENDING REQUEST =================
-
-if(
-  text.includes("pending request") ||
-  text.includes("show pending")
-){
-
-  const data =
-  await sql`
-
-  SELECT
-
-  employee.name AS employee,
-  assets.name AS asset,
-  requests.status,
-  requests.created_at
-
-  FROM requests
-
-  JOIN employee
-  ON employee.id=requests.employee_id
-
-  JOIN assets
-  ON assets.id=requests.asset_id
-
-  WHERE LOWER(TRIM(requests.status))='pending'
-
-  ORDER BY requests.id DESC
-
-  `;
-
-
-  return NextResponse.json({
-
-    reply:
-    "Here are the pending requests",
-
-    table:data
-
-  });
+// ================= EMPLOYEE =================
+
+
+{
+type:"function",
+function:{
+name:"show_employees",
+description:"Show employees",
+parameters:{
+type:"object",
+properties:{}
+}
+}},
+
+
+{
+type:"function",
+function:{
+name:"get_employee",
+description:"single employee detail",
+parameters:{
+type:"object",
+properties:{
+name:{type:"string"}
+},
+required:["name"]
+}
+}},
+
+
+{
+type:"function",
+function:{
+name:"add_employee",
+description:"add employee",
+parameters:{
+type:"object",
+properties:{
+name:{type:"string"},
+email:{type:"string"},
+role:{type:"string"}
+},
+required:["name","email","role"]
+}
+}},
+
+
+{
+type:"function",
+function:{
+name:"delete_employee",
+description:"delete employee",
+parameters:{
+type:"object",
+properties:{
+name:{type:"string"}
+},
+required:["name"]
+}
+}},
+
+
+{
+type:"function",
+function:{
+name:"update_employee",
+description:"update employee",
+parameters:{
+type:"object",
+properties:{
+oldName:{type:"string"},
+name:{type:"string"},
+email:{type:"string"},
+role:{type:"string"}
+}
+}
+}},
+
+
+
+
+// ================= ASSET =================
+
+
+{
+type:"function",
+function:{
+name:"show_assets",
+description:"all assets",
+parameters:{
+type:"object",
+properties:{}
+}
+}},
+
+
+{
+type:"function",
+function:{
+name:"get_asset",
+description:"single asset",
+parameters:{
+type:"object",
+properties:{
+name:{type:"string"}
+},
+required:["name"]
+}
+}},
+
+
+{
+type:"function",
+function:{
+name:"available_assets",
+description:"available assets",
+parameters:{
+type:"object",
+properties:{}
+}
+}},
+
+
+{
+type:"function",
+function:{
+name:"remaining_assets",
+description:"remaining assets",
+parameters:{
+type:"object",
+properties:{}
+}
+}},
+
+
+{
+type:"function",
+function:{
+name:"out_stock_assets",
+description:"out stock assets",
+parameters:{
+type:"object",
+properties:{}
+}
+}},
+
+
+{
+type:"function",
+function:{
+name:"max_assets",
+description:"maximum quantity assets",
+parameters:{
+type:"object",
+properties:{}
+}
+}},
+
+
+{
+type:"function",
+function:{
+name:"add_asset",
+description:"add asset merge quantity",
+parameters:{
+type:"object",
+properties:{
+name:{type:"string"},
+category:{type:"string"},
+quantity:{type:"number"}
+},
+required:["name","category","quantity"]
+}
+}},
+
+
+
+
+// ================= REQUEST =================
+
+
+{
+type:"function",
+function:{
+name:"show_requests",
+description:"pending requests",
+parameters:{
+type:"object",
+properties:{}
+}
+}}
+
+] as any
+
+});
+
+
+const msg:any =
+completion.choices[0].message;
+
+
+
+const tool =
+msg.tool_calls?.[0];
+
+
+
+if(!tool){
+
+return NextResponse.json({
+reply:msg.content || "How can I help?"
+});
 
 }
 
 
-  // ================= AVAILABLE ASSETS =================
+
+const name =
+tool.function.name;
 
 
-  if(
-    text.includes("available") &&
-    text.includes("asset")
-  ){
+let args:any={};
 
+try{
 
-    const data =
-    await sql`
+args =
+JSON.parse(tool.function.arguments || "{}");
 
-    SELECT
+}
+catch{
 
-    SUM(quantity) total,
-    SUM(allocated) allocated
+args={};
 
-
-    FROM assets
-
-    `;
-
-    const available =
-    Number(data[0].total || 0)
-    -
-    Number(data[0].allocated || 0);
-
-    return NextResponse.json({
-
-      reply:
-
-`Available assets: ${available}`
-
-    });
-
-  }
-
-  // ================= REQUEST ASSET =================
-
-
-  if(text.startsWith("request")){
-
-
-    const assetName =
-    message.replace(/request/i,"").trim();
-
-
-    const asset =
-    await sql`
-
-    SELECT id
-
-    FROM assets
-
-    WHERE LOWER(name)=LOWER(${assetName})
-
-    `;
-
-
-    if(!asset.length){
-
-      return NextResponse.json({
-
-        reply:
-        `❌ Asset ${assetName} not found`
-
-      });
-
-    }
-
-
-    // temporary employee id
-    await sql`
-
-    INSERT INTO requests
-    (
-      employee_id,
-      asset_id,
-      status,
-      created_at
-    )
-
-    VALUES
-    (
-      'dd04f980-7a7e-44d8-8296-63880c5dcab4',
-      ${asset[0].id},
-      'pending',
-      CURRENT_DATE
-    )
-
-    `;
+}
 
 
 
-    return NextResponse.json({
 
-      reply:
-      `✅ Request created for ${assetName}. Waiting for admin approval...`
-
-    });
-
-  }
+// ================= EMPLOYEE =================
 
 
+if(name==="show_employees"){
 
-  return NextResponse.json({
+const data =
+await sql`
 
-    reply:
-    "Hiii... How can I assist you? 🙂"
+SELECT name,email,role
+FROM employee
+ORDER BY id DESC
 
-  });
+`;
+
+return NextResponse.json({
+reply:"Employee List",
+type:"employee",
+table:data
+});
+
+}
+
+
+
+
+if(name==="get_employee"){
+
+const data =
+await sql`
+
+SELECT name,email,role
+FROM employee
+WHERE LOWER(name)=LOWER(${args.name})
+
+`;
+
+return NextResponse.json({
+reply:"Employee found",
+type:"employee",
+table:data
+});
+
+}
+
+
+
+
+if(name==="add_employee"){
+
+await sql`
+
+INSERT INTO employee(name,email,role)
+VALUES(${args.name},${args.email},${args.role})
+
+`;
+
+return NextResponse.json({
+reply:"Employee added"
+});
+
+}
+
+
+
+
+if(name==="delete_employee"){
+
+await sql`
+
+DELETE FROM employee
+WHERE name=${args.name}
+
+`;
+
+return NextResponse.json({
+reply:"Employee deleted"
+});
+
+}
+
+
+
+
+if(name==="update_employee"){
+
+await sql`
+
+UPDATE employee
+SET
+
+name=COALESCE(${args.name},name),
+email=COALESCE(${args.email},email),
+role=COALESCE(${args.role},role)
+
+WHERE name=${args.oldName}
+
+`;
+
+return NextResponse.json({
+reply:"Employee updated"
+});
+
+}
+
+
+
+
+
+// ================= ASSET =================
+
+
+if(name==="show_assets"){
+
+const data =
+await sql`
+
+SELECT
+name,
+category,
+quantity,
+allocated,
+(quantity-allocated) as available
+
+FROM assets
+ORDER BY id DESC
+
+`;
+
+
+return NextResponse.json({
+reply:"Asset List",
+type:"asset",
+table:data
+});
+
+}
+
+
+
+
+
+if(name==="get_asset"){
+
+const data =
+await sql`
+
+SELECT
+name,
+category,
+quantity,
+allocated,
+(quantity-allocated) as available
+
+FROM assets
+
+WHERE LOWER(name)=LOWER(${args.name})
+
+`;
+
+
+return NextResponse.json({
+reply:"Asset found",
+type:"asset",
+table:data
+});
+
+}
+
+
+
+
+if(name==="available_assets"){
+
+const data =
+await sql`
+
+SELECT
+name,
+category,
+(quantity-allocated) as available
+
+FROM assets
+
+WHERE quantity-allocated>0
+
+`;
+
+
+return NextResponse.json({
+reply:"Available Assets",
+type:"asset",
+table:data
+});
+
+}
+
+
+
+
+
+if(name==="remaining_assets"){
+
+const data =
+await sql`
+
+SELECT
+name,
+category,
+(quantity-allocated) as remaining
+
+FROM assets
+
+`;
+
+
+return NextResponse.json({
+reply:"Remaining Assets",
+type:"asset",
+table:data
+});
+
+}
+
+
+
+
+
+if(name==="out_stock_assets"){
+
+const data =
+await sql`
+
+SELECT
+name,
+category
+
+FROM assets
+
+WHERE quantity-allocated=0
+
+`;
+
+
+return NextResponse.json({
+reply:"Out of Stock Assets",
+type:"asset",
+table:data
+});
+
+}
+
+
+
+
+if(name==="max_assets"){
+
+const data =
+await sql`
+
+SELECT
+name,
+quantity
+
+FROM assets
+
+ORDER BY quantity DESC
+
+LIMIT 5
+
+`;
+
+
+return NextResponse.json({
+reply:"Maximum Quantity Assets",
+type:"asset",
+table:data
+});
+
+}
+
+
+
+
+if(name==="add_asset"){
+
+const old =
+await sql`
+
+SELECT *
+FROM assets
+WHERE name=${args.name}
+
+`;
+
+
+
+if(old.length){
+
+await sql`
+
+UPDATE assets
+
+SET quantity=quantity+${args.quantity}
+
+WHERE name=${args.name}
+
+`;
+
+return NextResponse.json({
+reply:"Asset quantity merged"
+});
+
+}
+
+
+
+await sql`
+
+INSERT INTO assets
+(name,category,quantity,allocated)
+
+VALUES
+(${args.name},${args.category},${args.quantity},0)
+
+`;
+
+
+return NextResponse.json({
+reply:"Asset added"
+});
+
+}
+
+
+
+
+
+// ================= REQUEST FIX =================
+
+
+// ================= REQUEST =================
+
+
+if(name==="show_requests"){
+
+
+const data =
+await sql`
+
+SELECT
+
+r.id,
+r.status,
+
+e.name AS employee,
+
+a.name AS asset
+
+
+FROM requests r
+
+
+LEFT JOIN employee e
+
+ON e.id = r.employee_id
+
+
+LEFT JOIN assets a
+
+ON a.id = r.asset_id
+
+
+WHERE r.status = 'pending'
+
+
+ORDER BY r.id DESC
+
+
+`;
+
+
+
+return NextResponse.json({
+
+reply:"Pending Requests",
+
+type:"request",
+
+table:data
+
+});
+
+}
+
+
+
+return NextResponse.json({
+reply:"Done"
+});
+
+
+
+}
+catch(e){
+
+console.log(e);
+
+return NextResponse.json({
+reply:"Server error"
+});
+
+}
+
 
 }

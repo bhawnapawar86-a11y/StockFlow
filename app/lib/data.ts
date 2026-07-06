@@ -3,18 +3,22 @@ import { sql } from "./db";
 // ================= DASHBOARD STATS =================
 export async function fetchAssetData() {
   const total = await sql`
-    SELECT COUNT(*) FROM assets
+    SELECT COALESCE(SUM(quantity),0) AS total
+    FROM assets
   `;
 
   const allocated = await sql`
-    SELECT COUNT(*) FROM requests WHERE status = 'approved'
+    SELECT COALESCE(SUM(allocated),0) AS allocated
+    FROM assets
   `;
 
+  const totalValue = Number(total[0].total);
+  const allocatedValue = Number(allocated[0].allocated);
+
   return {
-    totalAssets: Number(total[0].count),
-    allocated: Number(allocated[0].count),
-    remaining:
-      Number(total[0].count) - Number(allocated[0].count),
+    totalAssets: totalValue,
+    allocated: allocatedValue,
+    remaining: totalValue - allocatedValue,
   };
 }
 
@@ -44,39 +48,58 @@ export async function getAssets() {
 
 // ================= REQUESTS =================
 export async function getRequests() {
-  const result = await sql`
-    SELECT 
+  return await sql`
+
+    SELECT
       r.id,
       r.status,
       r.created_at,
 
-      e.name AS employee_name,
-      a.name AS asset_name
+      COALESCE(e.name, 'Unknown') AS employee_name,
+      COALESCE(a.name, 'Unknown Asset') AS asset_name
 
     FROM requests r
-    LEFT JOIN employee e ON e.id = r.employee_id
-    LEFT JOIN assets a ON a.id = r.asset_id
+
+    LEFT JOIN employee e
+      ON e.id = r.employee_id
+
+    LEFT JOIN assets a
+      ON a.id = r.asset_id
 
     ORDER BY r.id DESC
-  `;
 
-  return result;
+  `;
 }
 
 // ================= EMPLOYEE ASSETS =================
 export async function getEmployeeAssets(employeeId: string) {
-  return await sql`
+
+  const data = await sql`
+
     SELECT 
-      assets.id,
-      assets.name,
-      assets.category,
-      requests.status
-    FROM requests
-    JOIN assets ON assets.id = requests.asset_id
-    WHERE requests.employee_id = ${employeeId}
-      AND requests.status = 'approved'
-    ORDER BY requests.id DESC
+      a.id,
+      a.name,
+      a.category,
+      a.quantity,
+      a.allocated,
+      r.status
+
+    FROM requests r
+
+    JOIN assets a 
+    ON a.id = r.asset_id
+
+    JOIN employee e
+    ON e.id = r.employee_id
+
+    WHERE e.id = ${employeeId}
+    AND r.status = 'approved'
+
+    ORDER BY r.id DESC
+
   `;
+
+  return data;
 }
 
 export async function getMyRequests(employeeId: string) {

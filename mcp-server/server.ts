@@ -1,138 +1,224 @@
-import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
-import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
-import { sql } from "./db.js";
-import { z } from "zod";
+import {
+McpServer
+}
+from "@modelcontextprotocol/sdk/server/mcp.js";
 
-const server = new McpServer({
-  name: "stockflow-mcp",
-  version: "1.0.0",
+
+import {
+StdioServerTransport
+}
+from "@modelcontextprotocol/sdk/server/stdio.js";
+
+
+import {z} from "zod";
+
+
+import {
+addEmployee,
+addAsset,
+showAssets,
+showEmployees
+}
+from "./tools";
+
+
+
+const server =
+new McpServer({
+
+name:"stockflow-mcp",
+
+version:"1.0.0"
+
 });
 
-// ================= ADD EMPLOYEE =================
+
+
+
+// TOOL 1
 
 server.tool(
-  "add_employee",
-  "Add a new employee",
-  {
-    name: z.string(),
-    email: z.string(),
-    role: z.string(),
-  },
-  async ({ name, email, role }) => {
 
-    await sql`
-      INSERT INTO employee (name, email, role)
-      VALUES (${name}, ${email}, ${role})
-    `;
+"add_employee",
 
-    return {
-      content: [
-        {
-          type: "text",
-          text: `✅ Employee ${name} added successfully`,
-        },
-      ],
-    };
-  }
+"Add employee in stockflow",
+
+{
+
+name:z.string(),
+
+email:z.string(),
+
+role:z.string()
+
+},
+
+async(args)=>{
+
+const result =
+await addEmployee(
+args.name,
+args.email,
+args.role
 );
- 
 
-// ================= ADD ASSET =================
+
+return {
+
+content:[
+{
+type:"text",
+text:result
+}
+]
+
+};
+
+
+}
+
+);
+
+
+
+
+// TOOL 2
 
 server.tool(
-  "add_asset",
-  "Add a new asset",
-  {
-    name: z.string(),
-    category: z.string(),
-    quantity: z.number(),
-  },
-  async ({ name, category, quantity }) => {
 
-    await sql`
-      INSERT INTO assets (name, category, quantity, allocated)
-      VALUES (${name}, ${category}, ${quantity}, 0)
-    `;
+"add_asset",
 
-    return {
-      content: [
-        {
-          type: "text",
-          text: `✅ Asset ${name} added successfully`,
-        },
-      ],
-    };
-  }
+"Add asset",
+
+{
+
+name:z.string(),
+
+category:z.string(),
+
+quantity:z.number()
+
+},
+
+
+async(args)=>{
+
+
+const result =
+await addAsset(
+args.name,
+args.category,
+args.quantity
 );
 
-// ================= PENDING REQUESTS =================
+
+
+return {
+
+content:[
+{
+type:"text",
+text:result
+}
+]
+
+};
+
+
+}
+
+);
+
+
+
+
+// TOOL 3
 
 server.tool(
-  "get_pending_requests",
-  "Show all pending requests",
-  {},
-  async () => {
 
-    const requests = await sql`
-      SELECT
-        requests.id,
-        employee.name as employee_name,
-        assets.name as asset_name
-      FROM requests
-      JOIN employee
-        ON employee.id = requests.employee_id
-      JOIN assets
-        ON assets.id = requests.asset_id
-      WHERE requests.status = 'pending'
-    `;
+"show_assets",
 
-    return {
-      content: [
-        {
-          type: "text",
-          text: JSON.stringify(requests, null, 2),
-        },
-      ],
-    };
-  }
+"Show all assets",
+
+{},
+
+
+async()=>{
+
+
+const data =
+await showAssets();
+
+
+return {
+
+content:[
+{
+type:"text",
+text:JSON.stringify(data)
+}
+]
+
+
+};
+
+
+}
+
 );
 
-// ================= AVAILABLE ASSETS =================
+
+
+
+
+// TOOL 4
 
 server.tool(
-  "dashboard_summary",
-  "Show asset summary",
-  {},
-  async () => {
 
-    const result = await sql`
-      SELECT
-        SUM(quantity) as total,
-        SUM(allocated) as allocated
-      FROM assets
-    `;
+"show_employees",
 
-    const total = Number(result[0].total || 0);
-    const allocated = Number(result[0].allocated || 0);
+"Show employees",
 
-    const available = total - allocated;
+{},
 
-    return {
-      content: [
-        {
-          type: "text",
-          text:
-            `Total Assets: ${total}
-Allocated: ${allocated}
-Available: ${available}`,
-        },
-      ],
-    };
-  }
+
+async()=>{
+
+
+const data =
+await showEmployees();
+
+
+return {
+
+content:[
+{
+type:"text",
+text:JSON.stringify(data)
+}
+]
+
+
+};
+
+
+}
+
 );
 
-const transport = new StdioServerTransport();
+
+
+
+
+const transport =
+new StdioServerTransport();
+
+
 
 await server.connect(transport);
 
-console.log("MCP Server Running...");
+
+
+console.log(
+"StockFlow MCP Running"
+);

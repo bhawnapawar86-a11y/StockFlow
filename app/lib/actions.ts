@@ -44,43 +44,43 @@ export async function createRequest(formData: FormData) {
   `;
 
   revalidatePath("/dashboard/admin/requests");
-  revalidatePath("/dashboard/employee/my-requests");
+  revalidatePath("/dashboard/employee/MyRequests");
   revalidatePath("/dashboard/employee");
 }
 
-export async function updateRequestStatus(
-  requestId: string,
-  status: string
-) {
-  
+export async function updateRequestStatus(requestId: string, status: string) {
+
   await sql`
     UPDATE requests
     SET status = ${status}
     WHERE id = ${requestId}
   `;
 
- 
+  // 🔥 if approved → increase allocated
   if (status === "approved") {
 
-    const request = await sql`
-      SELECT asset_id FROM requests WHERE id = ${requestId}
+    const req = await sql`
+      SELECT asset_id
+      FROM requests
+      WHERE id = ${requestId}
     `;
 
-    const assetId = request[0].asset_id;
-
-    await sql`
-      UPDATE assets
-      SET allocated = allocated + 1
-      WHERE id = ${assetId}
-    `;
+    if (req.length) {
+      await sql`
+        UPDATE assets
+        SET allocated = allocated + 1
+        WHERE id = ${req[0].asset_id}
+      `;
+    }
   }
 
-  
-  revalidatePath("/dashboard/admin/requests");
+  // 🔥 FORCE UI UPDATE (MOST IMPORTANT FIX)
+  revalidatePath("/dashboard/admin");
   revalidatePath("/dashboard/admin/assets");
-  revalidatePath("/dashboard/employee/my-assets");
-  revalidatePath("/dashboard/employee/my-requests");
+  revalidatePath("/dashboard/admin/requests");
   revalidatePath("/dashboard/employee");
+  revalidatePath("/dashboard/employee/MyAssets");
+  revalidatePath("/dashboard/employee/MyRequests");
 }
 
 export async function logout() {
